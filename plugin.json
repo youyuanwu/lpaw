@@ -1,9 +1,9 @@
 {
-  "name": "review-loop",
-  "description": "Coder + reviewer + orchestrator agents that iterate on numbered review comments recorded in .reviews/.",
+  "name": "lpaw",
+  "description": "Looped Agent Workflow: coder + reviewer + orchestrator agents that iterate on numbered review comments recorded in .reviews/.",
   "version": "0.1.0",
   "author": {
-    "name": "user1"
+    "name": "Youyuan Wu"
   },
   "license": "MIT",
   "keywords": ["code-review", "agents", "workflow", "orchestration"],

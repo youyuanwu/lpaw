@@ -1,7 +1,8 @@
-# review-loop
+# lpaw
 
-A GitHub Copilot CLI plugin that runs an iterative **coder → reviewer → fix** loop
-until a reviewer approves, keeping numbered review history under `.reviews/`.
+**Looped Agent Workflow** — a GitHub Copilot CLI plugin that runs an iterative
+**coder → reviewer → fix** loop until a reviewer approves, keeping numbered review
+history under `.reviews/`.
 
 ## Components
 
@@ -20,16 +21,16 @@ until a reviewer approves, keeping numbered review history under `.reviews/`.
 ### From a marketplace (recommended)
 
 ```bash
-copilot plugin marketplace add OWNER/lpaw
-copilot plugin install review-loop@review-loop-marketplace
+copilot plugin marketplace add youyuanwu/lpaw
+copilot plugin install lpaw@lpaw-marketplace
 ```
 
 Refresh, update, or remove later:
 
 ```bash
-copilot plugin marketplace update review-loop-marketplace
-copilot plugin update review-loop
-copilot plugin uninstall review-loop
+copilot plugin marketplace update lpaw-marketplace
+copilot plugin update lpaw
+copilot plugin uninstall lpaw
 ```
 
 ### Local (development)
@@ -46,14 +47,14 @@ copilot plugin list
 Remove the plugin:
 
 ```bash
-copilot plugin uninstall review-loop
+copilot plugin uninstall lpaw
 ```
 
 Optionally, also unregister the marketplace. This is refused if any of its
 plugins are still installed; pass `--force` to remove those too:
 
 ```bash
-copilot plugin marketplace remove review-loop-marketplace
+copilot plugin marketplace remove lpaw-marketplace
 ```
 
 Confirm it's gone:
@@ -75,12 +76,19 @@ Or switch agents inside a session with `/agent`.
 
 ## Review history
 
-Each task gets two paired logs: `.reviews/review-NNN.md` (reviewer comments) and
-`.reviews/response-NNN.md` (the coder's reply). Every review file has a top
-`Status:` / `Round:` summary and a `## Round N` section per review pass; the
-matching response file records, per round, what the coder **Addressed** and what
-it **Rejected** with rationale. The reviewer reads the response before each new
-round, so the full iteration history is preserved and auditable.
+Review artifacts use **one file per round** under `.reviews/`, numbered three
+digits:
+
+- `review-NNN.md` — the reviewer's comments for round N (`Status:` / `Round:`
+  header plus a `- [ ]` checklist).
+- `response-NNN.md` — the coder's reply for round N (same number), listing what
+  was **Addressed** and **Rejected** with rationale.
+
+The round number equals the file number (`review-001.md` = Round 1,
+`review-002.md` = Round 2, …). Each new review pass is a new file; the reviewer
+reads the previous round's `review-(N-1).md` and `response-(N-1).md` before
+writing, so the full iteration history is preserved and auditable. An
+`APPROVED` review file marks the end of the task.
 
 ## License
 

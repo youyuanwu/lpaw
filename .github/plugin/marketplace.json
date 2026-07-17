@@ -1,16 +1,16 @@
 {
-  "name": "review-loop-marketplace",
+  "name": "lpaw-marketplace",
   "owner": {
-    "name": "user1"
+    "name": "Youyuan Wu"
   },
   "metadata": {
-    "description": "Iterative coder/reviewer workflow plugins for Copilot CLI",
+    "description": "Looped Agent Workflow plugins for Copilot CLI",
     "version": "0.1.0"
   },
   "plugins": [
     {
-      "name": "review-loop",
-      "description": "Coder + reviewer + orchestrator agents that iterate on numbered review comments recorded in .reviews/.",
+      "name": "lpaw",
+      "description": "Looped Agent Workflow: coder + reviewer + orchestrator agents that iterate on numbered review comments recorded in .reviews/.",
       "version": "0.1.0",
       "source": "."
     }
