@@ -1,0 +1,7 @@
+# The .reviews/ folder holds numbered per-task review logs (review-NNN.md).
+# These are committed as an audit trail of the coder/reviewer iterations.
+# To treat them as transient instead, uncomment the line below:
+# /.reviews/
+
+.reviews/
+examples/

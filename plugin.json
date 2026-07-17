@@ -1,0 +1,11 @@
+{
+  "name": "review-loop",
+  "description": "Coder + reviewer + orchestrator agents that iterate on numbered review comments recorded in .reviews/.",
+  "version": "0.1.0",
+  "author": {
+    "name": "user1"
+  },
+  "license": "MIT",
+  "keywords": ["code-review", "agents", "workflow", "orchestration"],
+  "agents": ".github/agents/"
+}
