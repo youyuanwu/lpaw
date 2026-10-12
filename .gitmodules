@@ -1,0 +1,3 @@
+[submodule "phased-agent-workflow"]
+	path = external/phased-agent-workflow
+	url = https://github.com/lossyrob/phased-agent-workflow.git

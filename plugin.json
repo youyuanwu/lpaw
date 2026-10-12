@@ -1,11 +1,12 @@
 {
   "name": "lpaw",
-  "description": "Looped Agent Workflow: coder + reviewer + orchestrator agents that iterate on numbered review comments recorded in .reviews/.",
-  "version": "0.1.0",
+  "description": "Looped Agent Workflow agents, gated PAW MVP delivery, and repository simplification assessment.",
+  "version": "0.1.1",
   "author": {
     "name": "Youyuan Wu"
   },
   "license": "MIT",
-  "keywords": ["code-review", "agents", "workflow", "orchestration"],
-  "agents": ".github/agents/"
+  "keywords": ["code-review", "agents", "workflow", "orchestration", "planning", "paw"],
+  "agents": ".github/agents/",
+  "skills": ".github/skills/"
 }

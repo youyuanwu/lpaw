@@ -4,14 +4,14 @@
     "name": "Youyuan Wu"
   },
   "metadata": {
-    "description": "Looped Agent Workflow plugins for Copilot CLI",
+    "description": "Looped Agent Workflow, gated PAW MVP delivery, and simplification skills for Copilot CLI",
     "version": "0.1.0"
   },
   "plugins": [
     {
       "name": "lpaw",
-      "description": "Looped Agent Workflow: coder + reviewer + orchestrator agents that iterate on numbered review comments recorded in .reviews/.",
-      "version": "0.1.0",
+      "description": "Looped Agent Workflow agents, gated PAW MVP delivery, and repository simplification assessment.",
+      "version": "0.1.1",
       "source": "."
     }
   ]
