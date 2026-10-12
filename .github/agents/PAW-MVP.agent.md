@@ -119,8 +119,9 @@ order:
    and testable end to end.
 
 For each activity, instruct the subagent to load that skill first, execute it for
-the active PAW MVP work item, and return its structured verdict without
-modifying files. Supply the passing prior guard results required by later
+the active PAW MVP work item with `assessment_mode: plan`, and return its
+structured verdict without modifying files. Supply the passing prior guard
+results required by later
 guards. After each guard, run `paw-mvp-defer` directly with its deferred
 candidates and known decisions before replanning can erase their source. Pass
 the index and active work record paths to later guards.
@@ -390,8 +391,8 @@ directly.
 Only for explicit requests to trim or simplify existing code, establish baseline
 verification and delegate to `paw-simplify` after `paw-code-research`, before
 `paw-planning`. Instruct the subagent to load the skill first and pass the
-bounded goal, preserved contracts, and baseline results. If the skill is
-unavailable, report the missing dependency and stop this flow.
+bounded goal, preserved contracts, baseline results, and `assessment_mode: plan`.
+If the skill is unavailable, report the missing dependency and stop this flow.
 
 - `READY`: Present ranked candidates for user selection; do not treat the
   assessment as approval. If no candidates are justified, report that and stop.

@@ -4,14 +4,14 @@
     "name": "Youyuan Wu"
   },
   "metadata": {
-    "description": "PAW MVP delivery and repository simplification skills for Copilot CLI",
+    "description": "PAW MVP delivery, current-code reviews, and simplification skills for Copilot CLI",
     "version": "0.1.0"
   },
   "plugins": [
     {
       "name": "lpaw",
-      "description": "PAW MVP delivery with scope, simplicity, and completeness gates, committed deferrals, and repository simplification assessment.",
-      "version": "0.1.1",
+      "description": "PAW MVP delivery, current-code alignment reviews, committed deferrals, and repository simplification assessment.",
+      "version": "0.1.2",
       "source": "."
     }
   ]

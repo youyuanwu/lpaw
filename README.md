@@ -3,18 +3,21 @@
 **Looped Agent Workflow** — a GitHub Copilot CLI plugin that extends
 [Phased Agent Workflow](https://github.com/lossyrob/phased-agent-workflow)
 with minimum viable product delivery without scope creep, committed
-deferred-work documentation, and behavior-preserving repository simplification.
+deferred-work documentation, current-code MVP reviews, and behavior-preserving
+repository simplification.
 
 ## Components
 
 | Type  | Name                         | Purpose |
 | ----- | ---------------------------- | ------- |
 | Agent | `PAW-MVP`                    | Runs PAW for the smallest complete MVP without scope creep. |
+| Agent | `PAW-MVP-Ident`              | Reviews current code for simplification and MVP alignment. |
 | Skill | `paw-mvp-scope-guard`        | Keeps only capabilities required for the core user outcome. |
 | Skill | `paw-mvp-simplicity-guard`   | Minimizes architecture, dependencies, and implementation phases. |
 | Skill | `paw-mvp-completeness-guard` | Ensures the narrow MVP remains usable, safe, and testable. |
 | Skill | `paw-mvp-defer`              | Organizes deferred decisions and commits their documentation. |
 | Skill | `paw-simplify`               | Assesses existing code for evidence-backed, behavior-preserving simplification. |
+| Skill | `paw-mvp-ident`              | Produces a standalone PAW identification review artifact. |
 
 ## Requirements
 
@@ -73,9 +76,10 @@ copilot plugin list
 
 ## Usage
 
-The plugin ships one agent, `PAW-MVP`, and five skills. Invoke `PAW-MVP` for a
-minimal product workflow. It runs PAW in full mode with three focused MVP gates
-between planning and PAW's standard plan review.
+The plugin ships two agents and six skills. Invoke `PAW-MVP` for a minimal
+product workflow. It runs PAW in full mode with three focused MVP gates between
+planning and PAW's standard plan review. Invoke `PAW-MVP-Ident` to assess
+existing code and produce a review without implementing changes.
 
 ### One-shot (non-interactive)
 
@@ -266,6 +270,59 @@ The wrapper currently tracks PAW agent revision
 compare its `agents/PAW.agent.md` orchestration contract with
 `.github/agents/PAW-MVP.agent.md` and carry forward upstream workflow changes
 without removing the MVP guard pipeline.
+
+## Identifying simplifications and MVP alignment
+
+`PAW-MVP-Ident` reviews the current working tree, not just a diff or a proposed
+plan. It requires no PR, base branch, or existing PAW workflow. Provide the core
+MVP outcome and, optionally, a bounded subsystem:
+
+```bash
+copilot --agent PAW-MVP-Ident -p "Review the configuration subsystem for simplification and MVP alignment. The MVP must load and validate one configuration file. Preserve existing public contracts; identify opportunities only."
+```
+
+The agent runs `paw-mvp-ident` to collect current-code context, compose shared
+assessments, and write:
+
+```text
+.paw/reviews/mvp-ident-<branch-slug>/
+└── REVIEW.md
+```
+
+Repeated runs use a fresh directory suffix rather than overwrite earlier
+reviews. Detached HEAD uses `mvp-ident-detached-<short-sha>`. Reports contain:
+
+- The reviewed revision, working-tree state, scope, and MVP baseline
+- Evidence-backed alignment classifications and prioritized findings
+- Simplification alternatives, measurable reductions, compatibility risks,
+  verification requirements, and rollback
+- Proposed deferrals, unresolved questions, and next steps
+
+Assessment criteria are reused rather than duplicated:
+
+1. `paw-mvp-scope-guard` assesses MVP alignment.
+2. `paw-simplify` identifies behavior-preserving simplifications.
+3. `paw-mvp-completeness-guard` assesses the implemented core journey.
+
+Each receives explicit `assessment_mode: current-code` and an in-memory
+context; no workflow or plan artifacts are fabricated. Results accumulate even
+when one assessment is partial or blocked. The report records each assessment's
+status and finding provenance instead of silently omitting a failed skill.
+
+These skills retain `assessment_mode: plan` as their default, with their existing
+artifact prerequisites and gate/readiness verdicts. Current-code review results
+do not bypass the implementation workflow's planning gates.
+
+Report status is `COMPLETE`, `PARTIAL`, or `BLOCKED`; completion means the
+assessment is complete, not that changes are approved or tests have passed.
+Missing goals and evidence are explicitly labeled. The agent preserves source
+and git state, writes only the review artifact, and does not commit, create PRs,
+or automatically remove features. Tests are inspected rather than run.
+
+Select findings for a subsequent PAW-MVP workflow; its normal research, planning,
+MVP guards, and reviews remain required. Accepted deferrals can then be recorded
+and committed with `paw-mvp-defer`. This review is independent of the upstream
+PAW-Review PR-comment posting workflow.
 
 ## Simplifying an existing repository
 

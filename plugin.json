@@ -1,7 +1,7 @@
 {
   "name": "lpaw",
-  "description": "PAW MVP delivery with scope, simplicity, and completeness gates, committed deferrals, and repository simplification assessment.",
-  "version": "0.1.1",
+  "description": "PAW MVP delivery, current-code alignment reviews, committed deferrals, and repository simplification assessment.",
+  "version": "0.1.2",
   "author": {
     "name": "Youyuan Wu"
   },

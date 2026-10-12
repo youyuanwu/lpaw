@@ -1,21 +1,34 @@
 ---
 name: paw-simplify
-description: "Use after PAW code research and before planning to assess an existing repository for behavior-preserving simplification, unnecessary layers, duplication, and removable dependencies."
+description: "Use before PAW planning or in standalone current-code assessment mode to identify behavior-preserving simplification, unnecessary layers, duplication, and removable dependencies."
 ---
 
 # PAW Repository Simplification Assessment
 
-> **Execution Context**: Run in a read-only subagent after `paw-code-research`
-> and before `paw-planning`. Return findings to the PAW or PAW-MVP orchestrator.
-> Do not edit files, run mutating commands, install dependencies, or change git
-> state. The orchestrator owns baseline checks, approval, and implementation.
+> **Execution Context**: Run in a read-only assessment session. In planning
+> mode, run after `paw-code-research` and before `paw-planning`. Return findings
+> to the caller. Do not edit files, run mutating commands, install dependencies,
+> or change git state. The orchestrator owns checks, approval, and implementation.
 
 Identify bounded, evidence-backed opportunities to reduce existing complexity.
 Default to preserving behavior, public contracts, and supported user journeys.
-Assess one requested subsystem at a time; do not turn a localized task into a
-repository-wide rewrite.
+Honor the caller's included and excluded source areas. Assess one requested
+subsystem at a time; do not turn a localized task into a repository-wide rewrite.
 
-## Required Inputs
+## Assessment Mode
+
+- `assessment_mode: plan` (default): Keep the existing PAW workflow inputs,
+  readiness checks, Result, and Completion Response.
+- `assessment_mode: current-code` (explicit only): Read the
+  [shared current-code contract](../paw-mvp-ident/references/current-code-assessment.md).
+  Accept its in-memory context instead of required workflow artifacts and use
+  its result shape with category `SIMPLICITY`.
+
+Unknown modes return `BLOCKED` with the invalid value. Missing artifacts do not
+implicitly select current-code mode. Sections labeled Planning apply only to
+`assessment_mode: plan`.
+
+## Planning Inputs
 
 - Active `WorkflowContext.md` and `CodeResearch.md`
 - User's simplification goal and assessment boundaries
@@ -45,7 +58,8 @@ existing capabilities.
 
 ## Assessment
 
-1. Use code research to map entry points, consumers, dependencies, and tests.
+1. Use code research in planning mode, or the supplied evidence map in
+   current-code mode, to trace entry points, consumers, dependencies, and tests.
    Inspect relevant code to substantiate findings; do not ask
    `paw-code-research` to critique or propose refactors.
 2. Identify concrete opportunities to:
@@ -66,14 +80,18 @@ existing capabilities.
    target reduction, and how both will be measured. Examples include dependency
    count, indirection depth, duplicate paths, or configuration variants. Fewer
    lines alone does not prove simplification; do not fabricate measurements.
+   Label unmeasured baselines and proposed targets explicitly.
 7. Specify tests or characterization coverage proving preserved behavior,
    material failure cases, compatibility, and rollback. Missing coverage is
    prerequisite work, not permission to remove untested behavior.
 
-Report existing baseline failures separately from potential regressions.
-If baseline results are missing, failed, or do not cover the affected contracts,
-return `NEEDS_DECISION` with the research or verification needed before changes.
-The orchestrator establishes baseline coverage before implementation.
+Report existing baseline failures separately from potential regressions. In
+planning mode, missing, failed, or insufficient baseline results require
+`NEEDS_DECISION` with the verification needed before changes. In current-code
+mode, inspect tests and recorded results without running them, report unrun
+checks as `NOT_RUN`, and return assessment completeness separately from
+implementation readiness. Do not claim verification for a different revision
+or a working tree with subsequent source edits.
 
 ## Boundaries and Handoff
 
@@ -85,12 +103,15 @@ The orchestrator establishes baseline coverage before implementation.
   manufacture cleanup to satisfy the request.
 - Separate useful postponed candidates from rejected or unsupported ideas.
   Return deferred candidates in the format consumed by `paw-mvp-defer`.
+- In current-code mode, add `SIMPLIFY` alignment rows only for evidenced
+  candidates and `NEEDS_CONTEXT` for unresolved consumer questions. Treat a
+  prior scope assessment as context, not authority to delete supported behavior.
 - After user selection, the orchestrator sends only approved candidates,
   preserved contracts, measurement targets, and verification prerequisites to
   `paw-planning`. Implement and review in bounded phases, then compare actual
   reductions against the baseline while checking preserved behavior.
 
-## Result
+## Planning Result
 
 - `READY`: Assessment is grounded and ready for candidate selection, or no
   justified candidates exist. This is not permission to implement.
@@ -98,9 +119,10 @@ The orchestrator establishes baseline coverage before implementation.
   or baseline coverage require user input or additional evidence.
 - `BLOCKED`: Required context, artifacts, or the execution checkout are missing.
 
-## Completion Response
+## Planning Completion Response
 
-Return these sections, using `None` for empty lists and no placeholder rows:
+In planning mode, return these sections, using `None` for empty lists and no
+placeholder rows:
 
 ```markdown
 ## Repository Simplification Result: [READY|NEEDS_DECISION|BLOCKED]
