@@ -38,6 +38,15 @@ If the plan, code research, or passing scope result is unavailable, return
 - Compare alternatives by total implementation, verification, operational, and
   maintenance burden.
 
+Read the [shared test-value contract](../paw-mvp-completeness-guard/references/test-value-contract.md)
+when assessing verification design. Require a lightweight rationale per
+proposed or materially changed test group in the plan's existing verification
+sections. Identify unnecessary harnesses, speculative matrices, or duplicate
+protection while preserving meaningful boundary and failure coverage.
+Material avoidable testing complexity requires `REVISE`, not a blanket demand
+for fewer tests. Report the evidence and smaller alternative in the existing
+Findings and Required Simplifications sections; do not execute checks here.
+
 ## Review
 
 Inspect the plan for:

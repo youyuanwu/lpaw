@@ -1,6 +1,6 @@
 ---
 name: paw-mvp-defer
-description: "Use during PAW MVP scope reduction or repository simplification to record deferred work in an indexed per-work folder, preserve decisions, and commit the documentation."
+description: "Use during PAW MVP scope reduction, review-feedback triage, or repository simplification to record deferred work in an indexed per-work folder, preserve decisions, and commit the documentation."
 ---
 
 # PAW MVP Deferred Work
@@ -13,8 +13,9 @@ description: "Use during PAW MVP scope reduction or repository simplification to
 
 - Read the active `WorkflowContext.md` for Work ID, target branch, execution
   binding, and artifact lifecycle.
-- Receive the core outcome, guard or `paw-simplify` candidates, accepted
-  simplifications, or user decisions from the orchestrator.
+- Receive the core outcome, guard or `paw-simplify` candidates (including
+  `paw-mvp-review-guard` feedback IDs/URLs), accepted simplifications, or user
+  decisions from the orchestrator.
 - Load `paw-git-operations` before mutations. Prove the execution checkout and
   expected branch; use that checkout for all reads, writes, and git operations.
 - Use the normalized Work ID as the record filename. If it is unsafe,
@@ -75,6 +76,9 @@ no candidates or existing decisions.
   with the reason. Mark `IMPLEMENTED` only after verification.
 - Use stable item IDs and deduplicate repeated candidates. Preserve the prior
   rationale and record why a status changes rather than deleting history.
+- For review-driven candidates, retain the source feedback IDs/URLs and
+  distinguish proposed from agreed dispositions. Documentation does not resolve
+  a review thread or authorize ignoring a required fix.
 - Preserve all other Work IDs and entries. A later `PASS` or empty candidate
   list never resets existing documentation.
 - Make entries understandable after `.paw/` cleanup; disposable artifact links

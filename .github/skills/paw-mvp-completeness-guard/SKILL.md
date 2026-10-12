@@ -66,6 +66,22 @@ require or create these committed records.
 Minimal scope never permits broken error handling, insecure behavior, omitted
 validation, or tests that cannot prove the core outcome.
 
+## Test Effectiveness
+
+Read and apply the [shared test-value contract](references/test-value-contract.md).
+In planning mode, check that the verification design names relevant risks,
+observable assertions, and plausible defects those assertions should detect.
+Accept justified reuse of existing coverage; require `REVISE` when required
+behavior has no meaningful planned check or relies on vacuous assertions.
+Do not demand a test-file edit, count, or coverage increase as a proxy.
+
+In current-code mode, inspect the actual path and assertions, including mocked
+boundaries, and report ineffective coverage with evidence in Findings and
+Baseline Verification. Preserve current-code statuses and `NOT_RUN` handling;
+do not execute tests or controlled faults, or require them merely to complete
+the assessment. Both modes use existing output sections, not a new checklist
+artifact.
+
 ## Review
 
 Build a core-journey checklist from the stated outcome. In planning mode, trace

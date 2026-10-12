@@ -1,6 +1,6 @@
 ---
 name: PAW-MVP
-description: Executes PAW to deliver the smallest complete MVP without scope creep, using mandatory scope, simplicity, and completeness gates.
+description: Executes PAW to deliver the smallest complete MVP without scope creep, using planning gates and implementation-review feedback triage.
 tools: ["*"]
 ---
 
@@ -15,8 +15,8 @@ subagents.
 This orchestration contract is derived from PAW agent revision
 `465a5c9743f66722634cb0fb057b1580169a0661`. It requires the
 `paw-workflow` plugin and this plugin's `paw-mvp-scope-guard`,
-`paw-mvp-simplicity-guard`, `paw-mvp-completeness-guard`, and `paw-mvp-defer`
-skills.
+`paw-mvp-simplicity-guard`, `paw-mvp-completeness-guard`,
+`paw-mvp-review-guard`, and `paw-mvp-defer` skills.
 
 ## MVP Contract
 
@@ -67,16 +67,16 @@ silently replacing user values. Present the resolved configuration and value
 sources for confirmation before initializing or changing persisted settings.
 
 On resume, preserve the existing WorkflowContext.md configuration unless the
-user requests a change. Workflow overrides do not disable the three MVP guards
-or required deferred-documentation commits.
+user requests a change. Workflow overrides do not disable the three planning
+guards, review-feedback triage, or required deferred-documentation commits.
 
 Read `docs/mvp-deferred/README.md` and the active `<work-id>.md` when present.
 Use `paw-mvp-defer` to reconcile existing records or migrate a legacy record.
 
-Before planning begins, confirm all three MVP guards and `paw-mvp-defer` are
-available. If any cannot be loaded, report the missing lpaw dependency and stop
-before
-`paw-planning`.
+Before planning begins, confirm all three planning guards,
+`paw-mvp-review-guard`, and `paw-mvp-defer` are available. Also check the review
+guard before resuming implementation or comment handling. If a required skill
+cannot be loaded, report the missing lpaw dependency and stop before that work.
 
 ## Workflow Rules
 
@@ -91,21 +91,25 @@ before
 | paw-mvp-scope-guard (PASS) | paw-mvp-simplicity-guard | NO |
 | paw-mvp-simplicity-guard (PASS) | paw-mvp-completeness-guard | NO |
 | paw-mvp-completeness-guard (PASS) | paw-plan-review | NO |
-| Any MVP guard (REVISE) | paw-planning, then restart guard pipeline | NO |
-| Any MVP guard (ESCALATE or BLOCKED) | Pause for user or artifact recovery | NO |
+| Any planning guard (REVISE) | paw-planning, then restart guard pipeline | NO |
+| Any planning guard (ESCALATE or BLOCKED) | Pause for user or artifact recovery | NO |
 | Deferred candidates or decision changes | paw-mvp-defer before replanning or continuing | NO |
+| Implementation/final-review feedback or Phase/Final PR comments | paw-mvp-review-guard before review-driven changes or post-review progression | NO |
+| paw-mvp-review-guard (REPLAN) | paw-planning, then all planning guards and normal plan review | NO |
+| paw-mvp-review-guard (ESCALATE or BLOCKED) | Pause for decision or evidence recovery | NO |
 | paw-code-research (explicit repository simplification request) | paw-simplify assessment and candidate selection | NO |
 | paw-plan-review (passes) | paw-transition, then pending planning-docs review, Planning PR, or implementation | NO |
 | paw-planning-docs-review (complete) | paw-transition, then Planning PR (prs) or paw-implement (local) | NO |
 | Planning PR created | paw-transition → paw-implement | NO |
-| paw-impl-review (passes, more phases) | Push & Phase PR (prs strategy) | NO |
-| paw-impl-review (passes, last phase, review enabled) | paw-final-review | NO |
-| paw-impl-review (passes, last phase, review disabled) | paw-transition → paw-pr | Per Review Policy |
-| paw-final-review | paw-transition → paw-pr | NO |
+| paw-impl-review (passes, feedback cleared, more phases) | Push & Phase PR (prs strategy) | NO |
+| paw-impl-review (passes, feedback cleared, last phase, review enabled) | paw-final-review | NO |
+| paw-impl-review (passes, feedback cleared, last phase, review disabled) | paw-transition → paw-pr | Per Review Policy |
+| paw-final-review (feedback cleared, fixes verified) | paw-transition → paw-pr | NO |
 | Phase PR created | paw-transition → paw-implement (next) or paw-final-review or paw-pr | NO |
 
-**Skippable = NO**: Execute immediately without pausing or asking for
-confirmation.
+**Skippable = NO**: Execute immediately except for required decisions, blockers,
+and milestone pauses. Review Feedback Gate handling precedes all post-review
+routes; its `READY` verdict does not replace a review `PASS`.
 
 ### MVP Guard Pipeline
 
@@ -147,6 +151,104 @@ verdicts and requires the complete pipeline again.
 If two consecutive revisions fail on the same blocking finding, stop the
 automatic loop and ask the user to resolve the disputed MVP scope or
 architecture.
+
+### Test Value Contract
+
+Read the [shared test-value contract](../skills/paw-mvp-completeness-guard/references/test-value-contract.md)
+before planning, implementation, or review. Pass its resolved path and relevant
+test rationale/evidence to `paw-planning`, `paw-implement`, every
+`paw-impl-review`, and `paw-final-review` (including its review subagents).
+If the reference cannot be loaded, report the missing dependency and stop the
+affected activity rather than silently omitting the criteria.
+
+- Planning records the lightweight per-group rationale in its existing
+  verification sections; simplicity and completeness assess proportionality
+  and effectiveness respectively.
+- Implementation reuses adequate tests or fills concrete gaps, runs applicable
+  checks, and records current evidence and limitations. Prefer targeted
+  fail-before/pass-after evidence for important regressions when practical;
+  do not mandate mutation testing or install a new harness by default.
+- Review inspects assertion quality and distinct risk coverage, not just test
+  presence or a green suite. In PAW-MVP, explicitly replace upstream
+  `paw-impl-review`'s comment-verification rule that functional changes without
+  test updates are a blocker: require adequate demonstrated coverage of the
+  changed behavior instead, permitting unchanged tests with relevant assertions
+  and current passing execution evidence.
+- This override does not waive required checks, failing tests, explicit test
+  deliverables, or plan completeness. Any change to agreed verification
+  commitments follows normal decision/replanning gates. Reviewers report
+  concrete gaps through the Review Feedback Gate, never add tests directly.
+- Assessments remain read-only. Record inspection, structural validation, and
+  executed behavioral evidence separately; never claim a workflow was exercised
+  merely because a prompt contains the expected words.
+
+### Review Feedback Gate
+
+Apply this gate to every `paw-impl-review` result (including advisory notes),
+automated final-review findings, and human comments on Phase or Final PRs.
+Planning PR feedback continues through `paw-planning` and the planning gates.
+Changing review policy or final-review auto-apply settings never bypasses it.
+
+1. **Collect before changing code.** Delegate `paw-impl-review` with an explicit
+   review-only instruction: retain its plan-completeness checks, required tests,
+   and original verdict, but return proposed documentation, formatting, and
+   refactors instead of editing or committing them. This overrides its normal
+   small-improvement permissions in PAW-MVP only. Stop `paw-final-review` after
+   collecting/synthesizing findings and before resolution or auto-apply; this
+   includes smart-mode quick wins and any new moderator findings.
+2. **Triage the complete batch.** Delegate to a read-only subagent instructed to
+   load `paw-mvp-review-guard` first. Supply its required context, full feedback,
+   current snapshot, original blockers, and previous decisions. For PRs, collect
+   unresolved threads and actionable conversation comments before
+   `paw-review-response` creates change TODOs. Preserve all source IDs; group or
+   split comments only with explicit mappings. An unavailable skill, incomplete
+   retrieval, invalid result, or missing disposition blocks rework.
+3. **Retain and route.** Store the batch, dispositions, decisions, and pending
+   originating review/PR in workflow TODO state. Run `paw-mvp-defer` with actual
+   proposed deferrals before replanning or pausing. For `BLOCKED`, recover
+   evidence; for `ESCALATE`, ask the stated question without changing code.
+   After a decision, rerun triage. For `REPLAN`, run `paw-planning`, all three
+   planning guards, and normal plan review/boundary handling before resuming
+   affected work. User approval is not a substitute for these gates. Do not
+   apply even the otherwise safe rows while the batch is blocked, awaiting a
+   decision, or awaiting replanning.
+4. **Apply only authorized work.** On `READY`, send only `FIX` and `SIMPLIFY`
+   rows to `paw-implement`, with the bounded response, source IDs, preservation
+   constraints, and required checks. Explicitly include authorized docs,
+   formatting, and small refactors here because the reviewer is now review-only.
+   A proposed deferral, reviewer severity, or "address all comments" request is
+   not scope-expansion approval. Respect final review's configured human
+   apply/discuss pauses for authorized rows; auto-apply may select only those
+   rows. A request to skip required quality work remains a blocker, not a pass.
+5. **Explain non-code dispositions.** Use `paw-mvp-defer` for optional proposals
+   and accepted decisions, preserving `PROPOSED` until authorized under the MVP
+   Contract or explicitly decided. Give automated findings a recorded rationale;
+   reply to human comments with the reason, MVP alternative, and deferred record
+   or evidence. Adapt `paw-review-response` mechanics: code rows use focused
+   commits and verified change replies; no-change/deferral rows use honest
+   disposition replies, never empty commits or fabricated fixes. Do not silently
+   resolve threads, claim proposed deferrals were accepted, or mark all comments
+   fixed. Disputed deferrals require a decision; preserve reviewer blockers
+   until reassessed or agreement is recorded.
+6. **Verify before progressing.** Every review-driven implementation returns to
+   review-only `paw-impl-review`; pass the dispositions and require verification
+   of the original problems, tests, preserved behavior, and no unapproved scope
+   growth. Triage new findings before further edits. Never relabel an upstream
+   `BLOCKED` as `PASS` merely because triage recommends deferral or no change:
+   request reviewer reassessment with evidence. If the same dispute survives
+   two review/triage rounds, pause for a user decision rather than loop.
+7. **Resume the originating route.** Before a batch is applied or resumed,
+   including after pulling reviewer commits or replanning, verify its code,
+   plan, and feedback snapshot is still current; retriage affected items if it
+   changed. Feedback is cleared only when authorized fixes
+   are verified, every item has a recorded disposition, required replies and
+   deferred-documentation commits succeeded, and no required decision or review
+   blocker remains. Nonblocking proposals may remain explicitly proposed/open;
+   never represent them as resolved. Only then follow normal post-review routes.
+   For final-review fixes, return to the pending final-review resolution before
+   its completion transition. For existing PR feedback, update the same PR
+   rather than create a duplicate. Honor configured stage transitions and pauses
+   once the originating boundary actually completes.
 
 ### Deferred Documentation Utility
 
@@ -191,9 +293,10 @@ Planning PR creation (PRs strategy) or `paw-implement` (local strategy) as the
 pending activity. Honor this milestone pause before creating the PR or starting
 implementation.
 
-**Post impl-review flow** (PRs strategy): After `paw-impl-review` returns PASS,
-load `paw-git-operations` and create Phase PR. For local strategy, push to target
-branch (no PR).
+**Post impl-review flow** (PRs strategy): After `paw-impl-review` returns PASS
+and the Review Feedback Gate is cleared, load `paw-git-operations` and create
+Phase PR (or update the existing PR for comment rework). For local strategy,
+push to target branch (no PR).
 
 ### Stage Boundary Rule
 
@@ -222,7 +325,8 @@ the user.
 |-----------------|----------------------|
 | paw-plan-review | Scope, simplicity, and completeness guards all PASS for the current ImplementationPlan.md |
 | paw-implement (any phase) | Load paw-git-operations, verify correct branch |
-| paw-pr | Load paw-pr; honor artifact lifecycle; resolve all phase candidates; verify deferred decisions committed on target branch |
+| Review-driven changes | Current review-feedback triage authorizes the bounded work; any required replanning and planning gates completed |
+| paw-pr | Load paw-pr; honor artifact lifecycle; clear review feedback; resolve all phase candidates; verify deferred decisions committed on target branch |
 
 For PRs strategy, phase branches are required (for example,
 `feature/123_phase1`).
@@ -242,7 +346,7 @@ For PRs strategy, phase branches are required (for example,
 ### Review Policy Behavior
 
 Review Policy controls HUMAN pauses only. It does not affect automated quality
-gates, including the MVP scope gate.
+gates, including the MVP planning and review-feedback gates.
 
 - `every-stage`: Pause after every artifact for user confirmation.
 - `milestones`: Pause at milestone artifacts only.
@@ -270,7 +374,9 @@ and stay in the current session without silently rewriting persisted settings.
 ## Workflow Tracking
 
 Use TODOs to externalize workflow steps. Include the scope, simplicity, and
-completeness guards between every planning and plan-review TODO.
+completeness guards between every planning and plan-review TODO. Track review
+feedback triage before rework, with source IDs, dispositions, verification, reply
+status, and the pending originating review/PR.
 
 After completing any activity, determine whether it is a stage boundary. If it
 is, delegate to `paw-transition` before doing anything else.
@@ -364,22 +470,27 @@ When pausing, provide:
 
 - `paw-spec-research`, `paw-code-research`, `paw-spec-review`,
   `paw-mvp-scope-guard`, `paw-mvp-simplicity-guard`,
-  `paw-mvp-completeness-guard`, `paw-plan-review`, `paw-impl-review`,
+  `paw-mvp-completeness-guard`, `paw-mvp-review-guard`,
+  `paw-plan-review`, `paw-impl-review`,
   `paw-transition`
 - `paw-simplify` (explicit repository simplification requests only)
 
 **Orchestrator-handled**:
 
-- After each MVP guard, follow the MVP Guard Pipeline verdict handling.
+- After each planning guard, follow the MVP Guard Pipeline verdict handling.
+- For implementation/final-review feedback and PR comments, follow the Review
+  Feedback Gate instead of the planning-guard verdict handler.
 - After any deferral or accepted simplification, run `paw-mvp-defer` directly.
 - After `paw-plan-review` PASS or Planning Docs Review completion, follow
   Planning Review Boundaries; transition and honor pauses before the pending
   activity.
 - After Planning PR creation, delegate to `paw-transition` and honor its result.
-- After `paw-impl-review` PASS, push or create the phase PR.
+- After `paw-impl-review` PASS and feedback clearance, resume the originating
+  review/PR route; push or create the phase PR only when that route calls for it.
 - After a Phase PR or push, delegate to `paw-transition`.
-- After `paw-final-review`, delegate to `paw-transition`; if the next activity
-  is `paw-pr`, load that skill rather than creating the Final PR inline.
+- After `paw-final-review` feedback is cleared and fixes verified, delegate to
+  `paw-transition`; if the next activity is `paw-pr`, load that skill rather
+  than creating the Final PR inline.
 
 ### Work Shaping Detection
 
@@ -420,13 +531,14 @@ For each request:
 3. Choose direct or subagent execution.
 4. Execute the activity.
 5. Update TODOs.
-6. Enforce the complete MVP guard pipeline after planning.
+6. Enforce planning gates after planning and feedback triage before review rework.
 7. Check stage boundaries before yielding.
 
 ### Utility Skills
 
 - Git and branch operations → `paw-git-operations`
-- PR comment responses → `paw-review-response`
+- Implementation-review and PR feedback triage → `paw-mvp-review-guard`
+- PR comment responses → `paw-review-response`, after feedback triage
 - Documentation conventions → `paw-docs-guidance`
 - Deferred decisions and committed records → `paw-mvp-defer`
 - Status, help, onboarding, and installation → `paw-status`

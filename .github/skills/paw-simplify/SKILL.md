@@ -85,6 +85,13 @@ existing capabilities.
    material failure cases, compatibility, and rollback. Missing coverage is
    prerequisite work, not permission to remove untested behavior.
 
+Apply the [shared test-value contract](../paw-mvp-completeness-guard/references/test-value-contract.md)
+to verification recommendations and test-simplification candidates in either
+mode. Reuse adequate coverage, justify additions by concrete gaps, and preserve
+distinct protections when proposing consolidation or removal. Cite weak
+assertions or avoidable machinery rather than equating fewer tests with less
+complexity. Keep the existing mode-specific execution boundaries and results.
+
 Report existing baseline failures separately from potential regressions. In
 planning mode, missing, failed, or insufficient baseline results require
 `NEEDS_DECISION` with the verification needed before changes. In current-code

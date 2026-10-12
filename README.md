@@ -15,6 +15,7 @@ repository simplification.
 | Skill | `paw-mvp-scope-guard`        | Keeps only capabilities required for the core user outcome. |
 | Skill | `paw-mvp-simplicity-guard`   | Minimizes architecture, dependencies, and implementation phases. |
 | Skill | `paw-mvp-completeness-guard` | Ensures the narrow MVP remains usable, safe, and testable. |
+| Skill | `paw-mvp-review-guard`       | Triages review feedback before fixes can expand MVP scope or complexity. |
 | Skill | `paw-mvp-defer`              | Organizes deferred decisions and commits their documentation. |
 | Skill | `paw-simplify`               | Assesses existing code for evidence-backed, behavior-preserving simplification. |
 | Skill | `paw-mvp-ident`              | Produces a standalone PAW identification review artifact. |
@@ -76,10 +77,11 @@ copilot plugin list
 
 ## Usage
 
-The plugin ships two agents and six skills. Invoke `PAW-MVP` for a minimal
+The plugin ships two agents and seven skills. Invoke `PAW-MVP` for a minimal
 product workflow. It runs PAW in full mode with three focused MVP gates between
-planning and PAW's standard plan review. Invoke `PAW-MVP-Ident` to assess
-existing code and produce a review without implementing changes.
+planning and PAW's standard plan review, plus feedback triage before
+review-driven implementation changes. Invoke `PAW-MVP-Ident` to assess existing
+code and produce a review without implementing changes.
 
 ### One-shot (non-interactive)
 
@@ -138,6 +140,8 @@ Assess with paw-simplify and present candidates for approval before planning.
 
 - Full PAW specification, research, planning, and review by default.
 - Scope, simplicity, and completeness gates after every planning activity.
+- MVP feedback triage for automated implementation/final reviews and human PR
+  comments, before changes are applied.
 - Committed deferred-work documentation outside disposable PAW artifacts.
 - Human review pauses according to your PAW configuration, plus explicit
   decisions when a gate cannot proceed.
@@ -213,7 +217,8 @@ configuration before initialization. Resuming work preserves its existing
 configuration unless you request a change.
 
 Changing workflow mode or human-review settings does not bypass the MVP scope,
-simplicity, and completeness gates or committed deferred-work documentation.
+simplicity, completeness, and review-feedback gates or committed deferred-work
+documentation.
 
 CLI workflows remain in one continuous session. If a preset or resumed workflow
 uses `session_policy: per-stage`, the agent explains that fresh per-stage
@@ -225,6 +230,65 @@ transition and honors milestone pauses before starting the next activity. On
 or repeating the same boundary transition. Resolved phase candidates use PAW's
 checked terminal markers, such as `- [x] [deferred]`, so they do not block final
 PR creation.
+
+### Guarding implementation-review feedback
+
+`PAW-MVP` runs `paw-mvp-review-guard` before acting on automated implementation
+or final-review findings and human comments on Phase or Final PRs. No separate
+agent invocation is needed. Planning PR comments still go through replanning
+and the existing three planning gates.
+
+| Feedback | Handling |
+| -------- | -------- |
+| Required correctness, security, compatibility, acceptance, or verification fix | Implement the smallest complete fix within the approved design, then verify it. |
+| Evidence-backed, behavior-preserving simplification | Apply a bounded reduction with preservation checks. |
+| Optional feature, abstraction, configurability, or polish | Propose deferral, record the rationale, and explain it to the reviewer. |
+| Material scope or architecture change | Obtain a user decision, then replan and rerun all planning gates before implementation. |
+| Already addressed, duplicated, or inapplicable comment | Record evidence and a no-change explanation; do not silently discard it. |
+| Missing evidence or conflicting requirements | Stop for recovery or a decision rather than guess. |
+
+The guard evaluates the reported problem separately from the suggested
+solution: a real bug may need a small fix, not the requested generic framework.
+It accounts for every feedback ID and preserves reviewer blockers. `READY`
+means triage is complete, not that the code passed review.
+
+Within PAW-MVP, the implementation reviewer returns proposed improvements
+instead of editing code itself. Final review's auto-apply and quick-win paths
+also wait for triage. Only authorized fixes and simplifications reach
+implementation, followed by required checks and implementation review.
+
+Deferred human comments receive a reasoned reply and a durable record, not a
+fabricated fix or silent thread resolution. Proposals remain proposed until
+authorized; disputes require a decision. Missing skills, incomplete feedback,
+failed verification, or unresolved blockers prevent progression. These are
+wrapper instructions; upstream PAW and standalone `PAW-MVP-Ident` are unchanged.
+
+### Guarding test value
+
+The existing skills share a
+[test-value contract](.github/skills/paw-mvp-completeness-guard/references/test-value-contract.md);
+there is no extra agent or gate. For each proposed or materially changed test
+group, the plan/review briefly identifies the requirement or risk, a plausible
+defect it should detect, the observable assertion, existing coverage/gaps, and
+the cheapest reliable test level.
+
+- **Simplicity** challenges unnecessary harnesses, speculative test matrices,
+  and duplication without losing distinct protection.
+- **Completeness** checks that assertions can detect required broken behavior,
+  not merely exercise mocks or return a green runner summary.
+- **Implementation and review** can reuse unchanged tests with relevant
+  assertions and current passing evidence. Functional changes do not
+  automatically require new test-file edits.
+- **Feedback triage** requires a concrete gap before adding tests; required
+  coverage cannot be deferred, and removing tests requires preservation evidence.
+- **Current-code assessment** reuses the criteria for test simplification and
+  coverage findings without running tests or claiming implementation readiness.
+
+Important regressions favor targeted fail-before/pass-after evidence when
+practical. Full mutation testing, test-count/coverage quotas, and new harnesses
+are not defaults. Existing project requirements and agreed test deliverables
+still apply. For agent workflows, structural checks validate formatting and
+contracts, not actual agent behavior; report live workflow evaluation separately.
 
 ### Committed deferred-work documentation
 
