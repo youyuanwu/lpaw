@@ -1,18 +1,14 @@
 # lpaw
 
-**Looped Agent Workflow** — a GitHub Copilot CLI plugin that runs an iterative
-**coder → reviewer → fix** loop until a reviewer approves, keeping numbered review
-history under `.reviews/`. It also provides a PAW workflow for minimal viable
-product delivery without scope creep and a skill for assessing existing
-repository simplification.
+**Looped Agent Workflow** — a GitHub Copilot CLI plugin that extends
+[Phased Agent Workflow](https://github.com/lossyrob/phased-agent-workflow)
+with minimum viable product delivery without scope creep, committed
+deferred-work documentation, and behavior-preserving repository simplification.
 
 ## Components
 
-| Type  | Name                   | Purpose                                                        |
-| ----- | ---------------------- | -------------------------------------------------------------- |
-| Agent | `coder`                | Implements the task and resolves review comments.              |
-| Agent | `reviewer`             | Records actionable comments in numbered `.reviews/` files.     |
-| Agent | `orchestrator`         | Drives the loop by delegating to `coder` and `reviewer`.       |
+| Type  | Name                         | Purpose |
+| ----- | ---------------------------- | ------- |
 | Agent | `PAW-MVP`                    | Runs PAW for the smallest complete MVP without scope creep. |
 | Skill | `paw-mvp-scope-guard`        | Keeps only capabilities required for the core user outcome. |
 | Skill | `paw-mvp-simplicity-guard`   | Minimizes architecture, dependencies, and implementation phases. |
@@ -23,6 +19,9 @@ repository simplification.
 ## Requirements
 
 - [GitHub Copilot CLI](https://github.com/github/copilot-cli) installed and authenticated.
+- PAW installed alongside lpaw; see [PAW MVP workflow](#paw-mvp-workflow).
+
+lpaw supports Copilot CLI only, not VS Code agent workflows.
 
 ## Install
 
@@ -74,19 +73,14 @@ copilot plugin list
 
 ## Usage
 
-The plugin ships four agents. For the lpaw review loop, invoke `orchestrator`,
-which coordinates the `coder` and `reviewer` subagents and loops until the
-reviewer approves (default: up to 10 rounds).
-
-For a minimal product workflow, invoke `PAW-MVP`. It runs
-[Phased Agent Workflow](https://github.com/lossyrob/phased-agent-workflow)
-in full mode with three focused MVP gates between planning and PAW's standard
-plan review.
+The plugin ships one agent, `PAW-MVP`, and five skills. Invoke `PAW-MVP` for a
+minimal product workflow. It runs PAW in full mode with three focused MVP gates
+between planning and PAW's standard plan review.
 
 ### One-shot (non-interactive)
 
 ```bash
-copilot --agent orchestrator -p "Add input validation to the login handler"
+copilot --agent PAW-MVP -p "Build the smallest usable API rate-limiting MVP"
 ```
 
 ### Interactive session
@@ -105,62 +99,47 @@ Inside the session:
   /agent
   ```
 
-  Choose `orchestrator`, then type your task as a normal prompt.
+  Choose `PAW-MVP`, then type your task as a normal prompt.
 
 - Or name the agent directly in your prompt — Copilot infers which to use:
 
   ```text
-  Use the orchestrator agent to add retry logic to the HTTP client
+  Use PAW-MVP to build a minimal API rate-limiting feature
   ```
 
 ### Writing a good prompt
 
-The orchestrator works best when the task is concrete and verifiable. Include:
+`PAW-MVP` works best when the task is concrete and verifiable. Include:
 
-- **What to build/change** and **where** (files, module, or feature).
-- **Acceptance criteria** the reviewer can check (behavior, edge cases, tests).
+- **Core user outcome** and **where** to build or change it.
+- **Acceptance criteria** PAW can verify (behavior, edge cases, tests).
 - **Constraints** (style, dependencies to avoid, performance limits).
-- Optionally, a **round limit** — e.g. "with at most 3 review rounds".
+- **Scope boundaries** identifying optional work to defer.
 
 Examples:
 
 ```text
-Use the orchestrator agent to add pagination to the /users API.
+Use PAW-MVP to add pagination to the /users API.
 Requirements: page & page_size query params, default 20 / max 100, return
 total count, 400 on invalid params, and cover the edge cases with tests.
+Defer cursor pagination and configurable sorting.
 ```
 
 ```text
-Use the orchestrator to refactor config loading into a single module,
-keeping behavior identical. Max 3 review rounds.
+Use PAW-MVP to simplify config loading, keeping existing behavior identical.
+Assess with paw-simplify and present candidates for approval before planning.
 ```
-
-### Running individual agents
-
-You can also invoke a single role directly:
-
-- Just a review of your current changes (no code edits):
-
-  ```bash
-  copilot --agent reviewer -p "Review my staged changes"
-  ```
-
-- Address an existing review file with the coder:
-
-  ```bash
-  copilot --agent coder -p "Address the comments in .reviews/review-002.md"
-  ```
 
 ### What to expect
 
-- The orchestrator gives a one-line status after each round (e.g.
-  `Round 2 (review-002.md): reviewer requested more work`).
-- Progress is recorded under `.reviews/` (see [Review history](#review-history)).
-- The loop stops when a `review-NNN.md` reaches `Status: APPROVED`, or when the
-  round limit is hit — after which any remaining comments are reported.
+- Full PAW specification, research, planning, and review by default.
+- Scope, simplicity, and completeness gates after every planning activity.
+- Committed deferred-work documentation outside disposable PAW artifacts.
+- Human review pauses according to your PAW configuration, plus explicit
+  decisions when a gate cannot proceed.
 
 > Tip: subagent delegation requires a model that supports the `task` tool. If the
-> orchestrator says it can't spawn subagents, switch models with `/model` and pick
+> agent says it can't spawn subagents, switch models with `/model` and pick
 > a capable first-party model.
 
 ## PAW MVP workflow
@@ -231,6 +210,17 @@ configuration unless you request a change.
 
 Changing workflow mode or human-review settings does not bypass the MVP scope,
 simplicity, and completeness gates or committed deferred-work documentation.
+
+CLI workflows remain in one continuous session. If a preset or resumed workflow
+uses `session_policy: per-stage`, the agent explains that fresh per-stage
+sessions are unavailable and continues in the current session.
+
+After plan review and planning-document review, the agent runs the mandatory
+transition and honors milestone pauses before starting the next activity. On
+`continue`, it resumes the recorded activity without skipping document review
+or repeating the same boundary transition. Resolved phase candidates use PAW's
+checked terminal markers, such as `- [x] [deferred]`, so they do not block final
+PR creation.
 
 ### Committed deferred-work documentation
 
@@ -312,22 +302,6 @@ before implementation. Changes proceed through normal PAW planning and reviewed
 phases, with postponed candidates recorded in the deferred-work folder. The
 standard PAW agent does not gain an automatic transition from installing lpaw;
 use the explicit instruction above. Ordinary MVP feature work is unchanged.
-
-## Review history
-
-Review artifacts use **one file per round** under `.reviews/`, numbered three
-digits:
-
-- `review-NNN.md` — the reviewer's comments for round N (`Status:` / `Round:`
-  header plus a `- [ ]` checklist).
-- `response-NNN.md` — the coder's reply for round N (same number), listing what
-  was **Addressed** and **Rejected** with rationale.
-
-The round number equals the file number (`review-001.md` = Round 1,
-`review-002.md` = Round 2, …). Each new review pass is a new file; the reviewer
-reads the previous round's `review-(N-1).md` and `response-(N-1).md` before
-writing, so the full iteration history is preserved and auditable. An
-`APPROVED` review file marks the end of the task.
 
 ## License
 
